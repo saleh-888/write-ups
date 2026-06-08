@@ -1,3 +1,7 @@
+## Room Information
+TryHackMe Room: https://tryhackme.com/room/jump
+
+
 ## **1. Overview**
 *Jump* is a CTF‑style Linux machine on TryHackMe that revolves around pivoting through multiple local users:
                             **recon_user → dev_user → monitor_user → ops_user → root**
