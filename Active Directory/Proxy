@@ -4,12 +4,12 @@ This challenge walks through SMB Enumeration -> File-Based Coercion Attack -> Cr
 # Environment Setup:
 machine_IP = 10.114.142.161
 Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
-![screenshot]()
+![screenshot](Screenshot 2026-08-28 221402.png)
 
 1. `nmap -sn 10.114.142.0/24 -T4`    to discover live hosts
 
 2. `nmap -sV -sC 10.114.142.161 -oN full_scan.txt`   port scan
-	![[Pasted image 20260827163857.png]]
+	
 
 3. SMB Shares Enumeration:
 	 i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
