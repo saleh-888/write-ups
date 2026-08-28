@@ -3,7 +3,8 @@ This challenge walks through SMB Enumeration -> File-Based Coercion Attack -> Cr
 
 # Environment Setup:
 machine_IP = 10.114.142.161
-Before starting enumeration, DNS resolution must point to the Domain Controller. Kerberos relies heavily on proper hostname resolution, and it's always good practice for AD environments 
+Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
+![screenshot]()
 
 1. `nmap -sn 10.114.142.0/24 -T4`    to discover live hosts
 
