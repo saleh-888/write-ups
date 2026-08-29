@@ -6,7 +6,7 @@ machine_IP = 10.114.142.161
 Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
 <img width="437" height="142" alt="Pasted image 20260828221413" src="https://github.com/user-attachments/assets/f6eef872-4040-46dd-b295-23d76dd120b7" />
 
-# Enumeration 
+# Host Discovery & Port Scan 
 1. `nmap -sn 10.114.142.0/24 -T4`    to discover live hosts
 
 
@@ -14,15 +14,15 @@ Before starting, DNS resolution must point to the Domain Controller. this is cri
 <img width="1207" height="807" alt="Pasted image 20260827163857" src="https://github.com/user-attachments/assets/20531676-48fa-4bf6-9772-25fe986577d3" />
 
 	
-3. ## SMB Shares Enumeration:
-	 - i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
-		then i used smbclient and it worked: 
-		`smbclient -L //10.114.142.161/ -N`
-		<img width="887" height="281" alt="Pasted image 20260827164709" src="https://github.com/user-attachments/assets/1dd75d6a-fdbb-4780-9168-18b79dabe550" />
+ # SMB Shares Enumeration:
+   -i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
+	then i used smbclient and it worked: 
+	`smbclient -L //10.114.142.161/ -N`
+	<img width="887" height="281" alt="Pasted image 20260827164709" src="https://github.com/user-attachments/assets/1dd75d6a-fdbb-4780-9168-18b79dabe550" />
 
-	 - then i had to connect to each share -> and discovered that i had read/write access to IT-Shared along with some interesting information:
-		`smbclient //10.114.142.161/IT-Shared -N`
-		<img width="737" height="430" alt="Pasted image 20260827165154" src="https://github.com/user-attachments/assets/b0a38d0a-3d53-4385-b3a7-574855b035ef" />
+   - then i had to connect to each share -> and discovered that i had read/write access to IT-Shared along with some interesting information:
+	 `smbclient //10.114.142.161/IT-Shared -N`
+	  <img width="737" height="430" alt="Pasted image 20260827165154" src="https://github.com/user-attachments/assets/b0a38d0a-3d53-4385-b3a7-574855b035ef" />
 
 		
 now since i have write access, and the file share hints that svc.scanner service account enumerates IT-Shared share for new files to process, that indicates a possible "File-Based Coercion Attack".
