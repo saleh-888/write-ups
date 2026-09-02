@@ -6,7 +6,9 @@ and walks through logging in remotely to the machine via RDP -> then exploiting 
 
 # Environment Set-Up:
 Machine_IP: 10.112.130.201  
-Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
+Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later  
+`sudo nano /etc/reso;v.conf`  
+add `nameserver 10.112.130.201`
 
 # Host Discovery & Port Scan:
 1. `nmap -sn 10.112.130.0/24 -T4`        to discover live hosts
