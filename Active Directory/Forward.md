@@ -49,7 +49,7 @@ users of this group are allowed to login remotely via RDP
 	and i successfully logged-in
 
 # Living Off the Land
-1. i opened cmd and check for groups and privielges:
+1. i opened cmd and check for groups and privielges:  
 `whoami /all` 
 
 
