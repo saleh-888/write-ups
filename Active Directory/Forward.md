@@ -49,12 +49,12 @@ users of this group are allowed to login remotely via RDP
 	` xfreerdp3 /dynamic-resolution +clipboard /cert:ignore /u:j.smith /p:JSmith@IT2024 /v:10.112.130.201`
 	and i successfully logged-in
 
-# Living Off the Land  
+# Living Off the Land
 i opened cmd and check for groups and privielges:  
 `whoami /all`           i discovered that i have `SeMachineAccountPrivilege`  
 "SeMachineAccountPrivilege": is assigned by default to "Authenticated Users Group" and allows a user to create a "Computer Account Object" in AD (in the domain),  
 through that computer account "$" you can exploit other vulnerabilities like (noPac/ Resource-Based Constrained Delegation)
-------------------------
+
 
 # utilizing The "sAMAccountName" Spoofing Attack (noPac) / CVE-2021-42278 & CVE-2021-42287: 
 Upon searching online on how to exploit this Privilege we find a tool that automate the process (noPac)  
