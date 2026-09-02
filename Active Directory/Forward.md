@@ -52,7 +52,6 @@ users of this group are allowed to login remotely via RDP
 # Living Off the Land  
 i opened cmd and check for groups and privielges:  
 `whoami /all`           i discovered that i have `SeMachineAccountPrivilege`  
-
 "SeMachineAccountPrivilege": is assigned by default to "Authenticated Users Group" and allows a user to create a "Computer Account Object" in AD (in the domain),  
 through that computer account "$" you can exploit other vulnerabilities like (noPac/ Resource-Based Constrained Delegation)
 ------------------------
